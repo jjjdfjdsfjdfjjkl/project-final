@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการสินค้า</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        body {
+            padding: 20px;
+            background-image: url(gg.jpg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .product-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        select {
+            background-color: white;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .products-list {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .edit-btn {
+            background-color: #ffc107;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+        }
+
+        .alert {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ระบบจัดการสินค้า</h1>
+        
+        <div class="alert alert-success" id="successAlert"></div>
+        <div class="alert alert-error" id="errorAlert"></div>
+
+        <div class="product-form">
+            <form id="productForm">
+                <input type="hidden" id="productId">
+                <div class="form-group">
+                    <label for="p_name">ชื่อสินค้า:</label>
+                    <input type="text" id="p_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="p_price">ราคา:</label>
+                    <input type="number" id="p_price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="p_stock">จำนวนในสต็อก:</label>
+                    <input type="number" id="p_stock" required>
+                </div>
+                <div class="form-group">
+                    <label for="p_gift">ของแถม:</label>
+                    <select id="p_gift" required>
+                        <option value="">-- เลือกของแถม --</option>
+                        <option value="LABUBU">ตุ๊กตา LABUBU</option>
+                        <option value="KITTY">ตุ๊กตา KITTY</option>
+                        <option value="JEFF">ตุ๊กตา JEFF</option>
+                        <option value="none">ไม่มีของแถม</option>
+                    </select>
+                </div>
+                <button type="submit">บันทึก</button>
+            </form>
+        </div>
+
+        <div class="products-list">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ชื่อสินค้า</th>
+                        <th>ราคา</th>
+                        <th>สต็อก</th>
+                        <th>ของแถม</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://67a84ce5203008941f6989ad.mockapi.io/Products';
+        const productForm = document.getElementById('productForm');
+        const productsTableBody = document.getElementById('productsTableBody');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+
+        // แสดงข้อความแจ้งเตือน
+        function showAlert(message, isError = false) {
+            const alert = isError ? errorAlert : successAlert;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+
+        // แปลงค่าของแถมเป็นข้อความแสดงผล
+        function formatGiftText(giftValue) {
+            const giftMap = {
+                'LABUBU': 'ตุ๊กตา LABUBU',
+                'KITTY': 'ตุ๊กตา KITTY',
+                'JEFF': 'ตุ๊กตา JEFF',
+                'none': 'ไม่มีของแถม'
+            };
+            return giftMap[giftValue] || 'ไม่มีของแถม';
+        }
+
+        // โหลดข้อมูลสินค้าทั้งหมด
+        async function loadProducts() {
+            try {
+                const response = await fetch(BASE_URL);
+                const products = await response.json();
+                productsTableBody.innerHTML = '';
+                
+                products.forEach(product => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${product.p_name}</td>
+                        <td>${product.p_price}</td>
+                        <td>${product.p_stock}</td>
+                        <td>${formatGiftText(product.p_gift)}</td>
+                        <td class="action-buttons">
+                            <button onclick="editProduct('${product.id}')" class="edit-btn">แก้ไข</button>
+                            <button onclick="deleteProduct('${product.id}')" class="delete-btn">ลบ</button>
+                        </td>
+                    `;
+                    productsTableBody.appendChild(row);
+                });
+            } catch (error) {
+                showAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล', true);
+            }
+        }
+
+        // บันทึกข้อมูลสินค้า
+        productForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productData = {
+                p_name: document.getElementById('p_name').value,
+                p_price: parseFloat(document.getElementById('p_price').value),
+                p_stock: parseInt(document.getElementById('p_stock').value),
+                p_gift: document.getElementById('p_gift').value
+            };
+
+            const productId = document.getElementById('productId').value;
+            
+            try {
+                if (productId) {
+                    // อัพเดทสินค้า
+                    await fetch(`${BASE_URL}/${productId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                    showAlert('อัพเดทสินค้าสำเร็จ');
+                } else {
+                    // เพิ่มสินค้าใหม่
+                    await fetch(BASE_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                    showAlert('เพิ่มสินค้าสำเร็จ');
+                }
+                
+                productForm.reset();
+                document.getElementById('productId').value = '';
+                loadProducts();
+            } catch (error) {
+                showAlert('เกิดข้อผิดพลาดในการบันทึกข้อมูล', true);
+            }
+        });
+
+        // แก้ไขสินค้า
+        async function editProduct(id) {
+            try {
+                const response = await fetch(`${BASE_URL}/${id}`);
+                const product = await response.json();
+                
+                document.getElementById('productId').value = product.id;
+                document.getElementById('p_name').value = product.p_name;
+                document.getElementById('p_price').value = product.p_price;
+                document.getElementById('p_stock').value = product.p_stock;
+                document.getElementById('p_gift').value = product.p_gift || 'none';
+            } catch (error) {
+                showAlert('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า', true);
+            }
+        }
+
+        // ลบสินค้า
+        async function deleteProduct(id) {
+            if (confirm('คุณแน่ใจหรือไม่ที่จะลบสินค้านี้?')) {
+                try {
+                    await fetch(`${BASE_URL}/${id}`, {
+                        method: 'DELETE'
+                    });
+                    showAlert('ลบสินค้าสำเร็จ');
+                    loadProducts();
+                } catch (error) {
+                    showAlert('เกิดข้อผิดพลาดในการลบสินค้า', true);
+                }
+            }
+        }
+
+        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
+        loadProducts();
+    </script>
+</body>
+</html>

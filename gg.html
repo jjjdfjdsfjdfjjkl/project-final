@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการสินค้า</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-image: url(th.jpg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 100px auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-edit {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .btn-edit:hover {
+            background-color: #e0a800;
+        }
+    </style>
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">ระบบจัดการสินค้า</h1>
+            <button class="btn btn-primary" onclick="openModal()">เพิ่มสินค้า</button>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ชื่อสินค้า</th>
+                    <th>ราคา</th>
+                    <th>สต็อก</th>
+                    <th>ของแถม</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                <!-- ข้อมูลสินค้าจะถูกเพิ่มที่นี่ด้วย JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal สำหรับเพิ่ม/แก้ไขสินค้า -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">เพิ่มสินค้า</h2>
+            <form id="productForm">
+                <div class="form-group">
+                    <label for="name">ชื่อสินค้า</label>
+                    <input type="text" id="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="price">ราคา</label>
+                    <input type="number" id="price" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="stock">สต็อก</label>
+                    <input type="number" id="stock" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="gift">ของแถม</label>
+                    <select id="gift" class="form-control">
+                        <option value="none">ไม่มีของแถม</option>
+                        <option value="HOUSE">บ้าน</option>
+                        <option value="CAR">รถ</option>
+                        <option value="PLANE">เครื่องบิน</option>
+                    </select>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <button type="button" class="btn btn-danger" onclick="closeModal()">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://67adaa243f5a4e1477de89e1.mockapi.io/produck';
+        let editingId = null;
+
+        // โหลดข้อมูลสินค้าเมื่อโหลดหน้าเว็บ
+        fetchProducts();
+
+        async function fetchProducts() {
+            try {
+                const response = await fetch(API_URL);
+                const products = await response.json();
+                displayProducts(products);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('ไม่สามารถโหลดข้อมูลสินค้าได้');
+            }
+        }
+
+        function displayProducts(products) {
+            const tableBody = document.getElementById('productTableBody');
+            tableBody.innerHTML = products.map(product => `
+                <tr>
+                    <td>${product.name}</td>
+                    <td>${product.price}</td>
+                    <td>${product.stock}</td>
+                    <td>${getGiftText(product.gift)}</td>
+                    <td class="actions">
+                        <button class="btn btn-edit" onclick="editProduct(${product.id})">แก้ไข</button>
+                        <button class="btn btn-danger" onclick="deleteProduct(${product.id})">ลบ</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getGiftText(giftValue) {
+            switch (giftValue) {
+                case 'HOUSE': return 'บ้าน';
+                case 'CAR': return 'รถ';
+                case 'PLANE': return 'เครื่องบิน';
+                default: return 'ไม่มีของแถม';
+            }
+        }
+
+        function openModal() {
+            document.getElementById('productModal').style.display = 'block';
+            document.getElementById('modalTitle').textContent = editingId ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า';
+        }
+
+        function closeModal() {
+            document.getElementById('productModal').style.display = 'none';
+            document.getElementById('productForm').reset();
+            editingId = null;
+        }
+
+        async function editProduct(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`);
+                const product = await response.json();
+                
+                document.getElementById('name').value = product.name;
+                document.getElementById('price').value = product.price;
+                document.getElementById('stock').value = product.stock;
+                document.getElementById('gift').value = product.gift;
+                
+                editingId = id;
+                openModal();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('ไม่สามารถโหลดข้อมูลสินค้าได้');
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
+                try {
+                    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                    fetchProducts();
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('ไม่สามารถลบสินค้าได้');
+                }
+            }
+        }
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('name').value,
+                price: document.getElementById('price').value,
+                stock: document.getElementById('stock').value,
+                gift: document.getElementById('gift').value
+            };
+
+            try {
+                const method = editingId ? 'PUT' : 'POST';
+                const url = editingId ? `${API_URL}/${editingId}` : API_URL;
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    fetchProducts();
+                } else {
+                    throw new Error('Network response was not ok');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('ไม่สามารถบันทึกข้อมูลได้');
+            }
+        });
+    </script>
+</body>
+</html>

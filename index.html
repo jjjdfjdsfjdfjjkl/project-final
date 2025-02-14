@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Page</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="login">
+    <div class="head">
+        <h1>Welcome!!!</h1>
+    </div>
+    <form id="loginForm">
+    <div class="int">
+    <label for="username">ชื่อผู้ใช้</label>
+    <input type="text" id="username" placeholder="Enter your username" required>
+    </div>
+    <div class="int">
+    <label for="password">รหัสผ่าน</label>
+    <input type="password" id="password" placeholder="Enter your password" required>
+    </div>
+    <button type="submit" class="login-button">Log In</button>
+    </form>
+    </div>
+
+    <script>
+        const mockUser = {
+            username: "Rickbath",
+            password: "049",
+            name: "ENG",
+            email: "Rickbath@gmail.com",
+        };
+
+        function createJWT(payload, secret, expiresInSeconds = 20) {
+            const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+            const body = btoa(JSON.stringify({
+                ...payload,
+                exp: Date.now() + expiresInSeconds * 1000,
+            }));
+            const signature = btoa(`${header}.${body}.${secret}`);
+            return `${header}.${body}.${signature}`;
+        }
+
+        document.getElementById("loginForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            if (username === mockUser.username && password === mockUser.password) {
+                const token = createJWT({ username: mockUser.username }, "mysecret", 20);
+                localStorage.setItem("token", token);
+                localStorage.setItem("name", mockUser.name);
+                localStorage.setItem("email", mockUser.email);
+                alert("ล็อคอินสำเร็จ!!!");
+                window.location.href = "home.html"; // Change this path if needed
+            } else {
+                alert("ชื่อผู้ใช้ หรือ รหัสผ่านผิด");
+            }
+        });
+    </script>
+</body>
+</html>
